@@ -1,9 +1,7 @@
 "use client";
 
-import { SetStateAction, useState } from "react";
-
+import { useState, SetStateAction, useEffect } from "react";
 import dynamic from "next/dynamic";
-
 import {
   LineChart,
   Line,
@@ -13,18 +11,14 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
 import { Card, CardContent } from "@/components/ui/card";
-
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-
 import {
   MapPin,
   BarChart3,
@@ -32,27 +26,32 @@ import {
   Thermometer,
   CloudSunRain,
 } from "lucide-react";
+import districtData from "../../lib/districtData";
 
-import districtData from "@/lib/districtData";
-
-const Map = dynamic(() => import("@/components/Map"), {
+const Map = dynamic(() => import("../../components/Map"), {
   ssr: false,
-
   loading: () => (
     <p className="text-center text-[var(--primary-color)]">Loading map...</p>
   ),
 });
 
+const unitLabels = {
+  rainfall: "Rainfall (mm)",
+  temperature: "Temperature (°C)",
+  humidity: "Humidity (%)",
+};
+
 export default function Dashboard() {
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
-
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
   const [selectedLabel, setSelectedLabel] = useState("rainfall");
-
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const handleDistrictClick = (district: SetStateAction<null>) => {
-    setSelectedDistrict(district);
+  useEffect(() => {
+    setSelectedLabel("rainfall"); 
+  }, [selectedDistrict]);
 
+  const handleDistrictClick = (district: SetStateAction<string | null>) => {
+    setSelectedDistrict(district);
     setIsDrawerOpen(true);
   };
 
@@ -70,7 +69,7 @@ export default function Dashboard() {
       </Card>
 
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerContent className="max-w-8xl w-full text-[var(--primary-color)] p-6">
+        <DrawerContent className=" w-full text-[var(--primary-color)] px-10">
           <DrawerHeader>
             <DrawerTitle className="text-[var(--primary-color)] flex items-center font-bold text-xl">
               <MapPin className="mr-2 text-[var(--accent-color)] " />
@@ -78,31 +77,20 @@ export default function Dashboard() {
             </DrawerTitle>
           </DrawerHeader>
 
-          {selectedDistrict && (
-            <div className="mt-4">
-              <Tabs defaultValue="rainfall" onValueChange={setSelectedLabel}>
+          {selectedDistrict && districtData[selectedDistrict] ? (
+            <div className="">
+              <Tabs value={selectedLabel} onValueChange={setSelectedLabel} className="mb-8">
                 <TabsList className="flex gap-2 text-[var(--primary-color)]">
-                  <TabsTrigger
-                    value="rainfall"
-                    className="flex items-center cursor-pointer "
-                  >
+                  <TabsTrigger value="rainfall">
                     <Droplet className="mr-2 text-[var(--accent-color)]" />
                     Rainfall
                   </TabsTrigger>
-
-                  <TabsTrigger
-                    value="temperature"
-                    className="flex items-center cursor-pointer "
-                  >
+                  <TabsTrigger value="temperature">
                     <Thermometer className="mr-2 text-[var(--accent-color)]" />
                     Temperature
                   </TabsTrigger>
-
-                  <TabsTrigger
-                    value="humidity"
-                    className="flex items-center cursor-pointer "
-                  >
-                    <BarChart3 className="mr-2 text-[var(--accent-color)] font-bold" />
+                  <TabsTrigger value="humidity">
+                    <BarChart3 className="mr-2 text-[var(--accent-color)]" />
                     Humidity
                   </TabsTrigger>
                 </TabsList>
@@ -110,17 +98,10 @@ export default function Dashboard() {
 
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={districtData[selectedDistrict]}>
-                  <XAxis
-                    dataKey="year"
-                    className="text-[var(--primary-color)]"
-                  />
-
-                  <YAxis className="text-[var(--primary-color)]" />
-
+                  <XAxis dataKey="year" />
+                  <YAxis label={{ value: unitLabels[selectedLabel], angle: -90, position: "insideLeft" }} />
                   <Tooltip />
-
                   <Legend />
-
                   <Line
                     type="monotone"
                     dataKey={selectedLabel}
@@ -130,6 +111,8 @@ export default function Dashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          ) : (
+            <p>No data available for {selectedDistrict}</p>
           )}
         </DrawerContent>
       </Drawer>
